@@ -1,26 +1,27 @@
-FROM debian:bullseye
+FROM node:18-bullseye-slim
 
-# Install dependencies and Node 18+
-RUN apt-get update && \
-    apt-get install -y build-essential cmake ffmpeg curl git && \
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs
+# Install dependencies
+RUN apt-get update && apt-get install -y build-essential cmake ffmpeg git curl
 
 # Set working directory
 WORKDIR /app
 
 # Clone whisper.cpp and build it
-RUN git clone https://github.com/ggerganov/whisper.cpp.git && \
+RUN git clone --depth=1 https://github.com/ggerganov/whisper.cpp.git && \
     cd whisper.cpp && make
 
 # Download model
 RUN curl -L -o whisper.cpp/ggml-base.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
 
+# Copy package files and install node deps
+COPY package*.json ./
+RUN npm install --production
+
 # Copy server file
 COPY server.js .
 
-# Install Node packages (express and multer)
-RUN npm install express multer
+# Set production mode
+ENV NODE_ENV=production
 
 # Expose port for Render
 EXPOSE 3000
