@@ -3,7 +3,6 @@ const multer = require("multer");
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
-const fetch = require("node-fetch"); // if Node < 18
 
 const app = express();
 app.use(express.json());
@@ -26,10 +25,12 @@ app.post("/transcribe-url", async (req, res) => {
     const { url } = req.body;
     if (!url) return res.status(400).send("Missing URL");
 
-    // Download file
+    // Download file to uploads/
     const tempFile = path.join(__dirname, "uploads", Date.now() + path.extname(url));
-    const response = await fetch(url);
-    const buffer = await response.buffer();
+    const response = await fetch(url); // ✅ native fetch in Node 18
+    if (!response.ok) throw new Error(`Failed to fetch file: ${response.statusText}`);
+
+    const buffer = Buffer.from(await response.arrayBuffer());
     fs.writeFileSync(tempFile, buffer);
 
     await handleTranscription(tempFile, res);
