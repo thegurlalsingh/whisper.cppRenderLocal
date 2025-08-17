@@ -14,7 +14,7 @@ RUN git clone --depth=1 https://github.com/ggerganov/whisper.cpp.git && \
 RUN curl -L -o whisper.cpp/ggml-base.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
 
 # Copy package files and install node deps
-RUN npm install express multer
+RUN npm install express multer node-fetch
 
 # Copy server file
 COPY server.js .
