@@ -7,7 +7,15 @@ const fs = require("fs");
 const app = express();
 app.use(express.json());
 
-const upload = multer({ dest: "uploads/" });
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+const upload = multer({ dest: uploadDir });
+
+// Absolute paths for whisper.cpp
+const WHISPER_BIN = path.resolve(__dirname, "whisper.cpp/main");
+const WHISPER_MODEL = path.resolve(__dirname, "whisper.cpp/ggml-base.en.bin");
 
 // Health check
 app.get("/", (req, res) => {
@@ -26,8 +34,8 @@ app.post("/transcribe-url", async (req, res) => {
     if (!url) return res.status(400).send("Missing URL");
 
     // Download file to uploads/
-    const tempFile = path.join(__dirname, "uploads", Date.now() + path.extname(url));
-    const response = await fetch(url); // ✅ native fetch in Node 18
+    const tempFile = path.join(uploadDir, Date.now() + path.extname(url));
+    const response = await fetch(url); // ✅ Node 18 has fetch globally
     if (!response.ok) throw new Error(`Failed to fetch file: ${response.statusText}`);
 
     const buffer = Buffer.from(await response.arrayBuffer());
@@ -35,7 +43,7 @@ app.post("/transcribe-url", async (req, res) => {
 
     await handleTranscription(tempFile, res);
   } catch (err) {
-    console.error(err);
+    console.error("URL transcription error:", err);
     res.status(500).send("Failed: " + err.message);
   }
 });
@@ -51,10 +59,13 @@ function handleTranscription(inputPath, res) {
       return res.status(500).send("Audio conversion failed: " + err.message);
     }
 
-    // Run whisper.cpp
-    exec(`./whisper.cpp/main -m ./whisper.cpp/ggml-base.en.bin -f "${wavPath}"`, (err, stdout, stderr) => {
+    // Run whisper.cpp using absolute path
+    exec(`${WHISPER_BIN} -m ${WHISPER_MODEL} -f "${wavPath}"`, (err, stdout, stderr) => {
       cleanup(inputPath, wavPath);
-      if (err) return res.status(500).send("Transcription failed: " + stderr);
+      if (err) {
+        console.error("Whisper error:", stderr);
+        return res.status(500).send("Transcription failed: " + stderr);
+      }
 
       res.send({ text: stdout.trim() });
     });
