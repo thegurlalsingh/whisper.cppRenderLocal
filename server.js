@@ -15,7 +15,7 @@ const upload = multer({ dest: uploadDir });
 
 // Absolute paths for whisper.cpp
 const WHISPER_BIN = path.resolve(__dirname, "whisper.cpp/main");
-const WHISPER_MODEL = path.resolve(__dirname, "whisper.cpp/ggml-base.en.bin");
+const WHISPER_MODEL = path.resolve(__dirname, "whisper.cpp/models/ggml-base.en.bin");
 
 // Health check
 app.get("/", (req, res) => {
